@@ -9,20 +9,11 @@ const MenuModule = {
 
     getUrlParam(name) {
         if (name !== 'm') return null;
+        const searchParam = new URLSearchParams(window.location.search).get(name);
+        if (searchParam) return searchParam;
         const hash = window.location.hash.slice(1);
-        if (hash) {
-            const hashParams = new URLSearchParams(hash);
-            let value = hashParams.get(name);
-            if (value) return value;
-            const hashQueryIndex = hash.indexOf('?');
-            if (hashQueryIndex > -1) {
-                const hashQuery = hash.substring(hashQueryIndex + 1);
-                const hashQueryParams = new URLSearchParams(hashQuery);
-                value = hashQueryParams.get(name);
-                if (value) return value;
-            }
-        }
-        return null;
+        if (!hash || !hash.includes('=')) return null;
+        return new URLSearchParams(hash).get(name);
     },
 
     parseRouteInput(input) {
