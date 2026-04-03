@@ -34,11 +34,11 @@ html,body{margin:0;padding:0;height:100%;width:100%;font-family:-apple-system,sa
 .hud-header .action-icon-btn svg{fill:#fff;width:20px;height:20px;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.4))}
 .hud-header .action-icon-btn:active{transform:scale(.93);background:rgba(255,255,255,0.25)}
 .hud-header .action-icon-btn:disabled{opacity:.3;cursor:not-allowed}
-.hud-comm{display:none;margin-bottom:10px;padding:12px;background:rgba(255,149,0,0.18);backdrop-filter:blur(15px);-webkit-backdrop-filter:blur(15px);border-radius:var(--glass-radius-xs);border:1px solid rgba(255,149,0,0.3);box-shadow:0 2px 12px rgba(255,149,0,0.1)}
+.hud-comm{display:none;margin-bottom:10px;padding:12px;background:var(--glass-bg);backdrop-filter:var(--glass-blur) saturate(180%);-webkit-backdrop-filter:var(--glass-blur) saturate(180%);border-radius:var(--glass-radius-xs);border:1px solid var(--glass-border);box-shadow:var(--glass-shadow)}
 .hud-comm.visible{display:block}
 .hud-comm-inner{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
 .hud-comm-text{font-size:13px;line-height:1.5;color:#fff;white-space:pre-wrap;text-shadow:0 1px 3px rgba(0,0,0,0.4);font-weight:500}
-.hud-comm-close{width:24px;height:24px;border-radius:8px;background:rgba(255,149,0,0.3);border:1px solid rgba(255,149,0,0.4);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;line-height:1;flex-shrink:0;transition:background .15s,transform .15s;text-shadow:0 1px 2px rgba(0,0,0,0.3)}
+.hud-comm-close{width:24px;height:24px;border-radius:8px;background:rgba(255,255,255,0.15);border:1px solid var(--glass-border-light);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;line-height:1;flex-shrink:0;transition:background .15s,transform .15s;text-shadow:0 1px 2px rgba(0,0,0,0.3)}
 .hud-comm-close:active{transform:scale(.9);background:rgba(255,149,0,0.45)}
 .hud-actions{width:100%;display:flex;padding-top:10px;gap:8px;align-items:center;justify-content:space-between;border-top:1px solid rgba(255,255,255,0.12);position:relative}
 .hud-actions-left{display:flex;align-items:center;gap:8px}
