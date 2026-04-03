@@ -94,7 +94,7 @@ html,body{margin:0;padding:0;height:100%;width:100%;font-family:-apple-system,sa
 <div class="hud-actions-right"><button id="nextBtn" class="nav-arrow-btn" title="Следующая точка"><svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg></button></div>
 </div>
 </div>
-<div id="commPanel"><div class="comm-header"><div class="comm-text" id="commPanelText"></div><button class="comm-close" id="commPanelClose">×</button></div></div>
+<div id="commPanel"><div class="comm-text" id="commPanelText"></div></div>
 <div id="toast"></div>
 <script>
 const COLORS={Gold:{hex:'#FFD700'},Blue:{hex:'#007AFF'},Red:{hex:'#F33'},Fuchsia:{hex:'#AF52DE'},Orange:{hex:'#F90'},Purple:{hex:'#5856D6'},Cyan:{hex:'#5CF'},Brown:{hex:'#A2845E'},Lime:{hex:'#3C7'}};
@@ -177,7 +177,7 @@ APP.map=new YMap(document.getElementById('map'),{location:{center:[43.9332,56.33
         $('viewLabel').textContent=is3D?'3D':'2D';
         APP.map.update({camera:{tilt:tilt*Math.PI/180}});
     });
-$('commPanelClose').addEventListener('click',e=>{e.stopPropagation();$('commPanel').classList.remove('visible');});
+$('commPanel').addEventListener('click',e=>{e.stopPropagation();$('commPanel').classList.remove('visible');});
 MenuModule.init(loadRouteFromJSON);
 if(typeof AutoRouteModule==='object')AutoRouteModule.btn=$('playBtn');
 $('loading').classList.add('hidden');
