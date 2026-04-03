@@ -168,7 +168,7 @@ playSegment(){if(this._stopRequested)return;const appRef=APP;if(!this.isRunning|
 async function initMap(){
 await ymaps3.ready;
 const{YMap,YMapDefaultSchemeLayer,YMapDefaultFeaturesLayer}=ymaps3;
-APP.map=new YMap(document.getElementById('map'),{location:{center:[43.9332,56.3399],zoom:17},behaviors:['drag','scrollZoom','dblClick']},[new YMapDefaultSchemeLayer({}),new YMapDefaultFeaturesLayer({})]);
+APP.map=new YMap(document.getElementById('map'),{location:{center:[43.9332,56.3399],zoom:17},behaviors:['drag','scrollZoom','dblClick','pinchZoom']},[new YMapDefaultSchemeLayer({}),new YMapDefaultFeaturesLayer({})]);
     $('playBtn').addEventListener('click',()=>{if(APP.navPoints.length===0){showToast('Маршрут не загружен','error');return;}if(typeof AutoRouteModule==='object')AutoRouteModule.toggle();});
     let is3D=true;
     $('viewBtn').addEventListener('click',()=>{
