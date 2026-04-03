@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#050505">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧭</text></svg>">
-<script src="https://api-maps.yandex.ru/v3/?apikey=c0e28937-4e16-4d15-9b99-09a30cb8fc13&lang=ru_RU"></script>
+<script src="https://api-maps.yandex.ru/v3/?apikey=c0e28937-4e16-4d15-9b99-09a30cb8fc13&lang=ru_RU" onload="initMap()"></script>
 <script src="https://unpkg.com/@vkontakte/vk-bridge@latest/dist/browser.min.js"></script>
 <script src="assets/js/routes-list.js"></script>
 <script src="assets/js/menu-module.js"></script>
@@ -171,7 +171,6 @@ MenuModule.init(loadRouteFromJSON);
 if(typeof AutoRouteModule==='object')AutoRouteModule.btn=$('playBtn');
 $('loading').classList.add('hidden');
 }
-initMap();
 </script>
 </body>
 </html>
