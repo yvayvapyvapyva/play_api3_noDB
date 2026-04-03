@@ -171,7 +171,8 @@ MenuModule.init(loadRouteFromJSON);
 if(typeof AutoRouteModule==='object')AutoRouteModule.btn=$('playBtn');
 $('loading').classList.add('hidden');
 }
-initMap();
+function waitForYMaps(){if(typeof ymaps3!=='undefined'){initMap();}else{setTimeout(waitForYMaps,50);}}
+waitForYMaps();
 </script>
 </body>
 </html>
