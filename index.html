@@ -124,25 +124,24 @@ renderRoutePoints();updateHud();
 if(APP.navPoints.length>0&&APP.map)setTimeout(()=>{let minLat=Infinity,maxLat=-Infinity,minLng=Infinity,maxLng=-Infinity;APP.navPoints.forEach(p=>{if(p.pts?.length>0){const[lng,lat]=p.pts[0];minLat=Math.min(minLat,lat);maxLat=Math.max(maxLat,lat);minLng=Math.min(minLng,lng);maxLng=Math.max(maxLng,lng);}});if(minLat!==Infinity)APP.map.update({location:{center:[(minLng+maxLng)/2,(minLat+maxLat)/2],zoom:18}});if(typeof AutoRouteModule==='object')AutoRouteModule.start(25);},500);
 preloadAudio();
 }
-function getNavIconSvg(col,txt,az,isEnd,isCurr=false,hasComm=false){const s=isEnd?34:40,c=s/2,strk=isCurr?'#0F0':'#000';const txtCol=hasComm?'#C44569':'#000';const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}"><circle cx="${c}" cy="${c}" r="${isEnd?7:9}" fill="${col}" stroke="${strk}" stroke-width="1.5"/><text x="${c}" y="${c+0.5}" font-size="${isEnd?8:9}" font-family="Arial" font-weight="900" text-anchor="middle" dominant-baseline="middle" fill="${txtCol}" stroke="white" stroke-width="2" style="paint-order:stroke fill">${txt}</text></svg>`;return'data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(svg)));}
+function getNavIconSvg(col,txt,az,isEnd,isCurr=false,hasComm=false){const s=38,c=s/2,r=12;const ring=isCurr?'rgba(255,255,255,0.9)':'rgba(255,255,255,0.5)';const ringW=isCurr?2.5:1.5;const txtCol=hasComm?'#E8567F':'#fff';const fs=hasComm?10:11;const fw=800;const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 ${s} ${s}"><defs><filter id="s" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="rgba(0,0,0,0.5)"/></filter><radialGradient id="g" cx="40%" cy="35%"><stop offset="0%" stop-color="rgba(255,255,255,0.25)"/><stop offset="100%" stop-color="rgba(0,0,0,0.15)"/></radialGradient></defs><g filter="url(#s)"><circle cx="${c}" cy="${c}" r="${r}" fill="${col}" stroke="${ring}" stroke-width="${ringW}"/><circle cx="${c}" cy="${c}" r="${r}" fill="url(#g)"/></g><text x="${c}" y="${c+0.5}" font-size="${fs}" font-family="-apple-system,sans-serif" font-weight="${fw}" text-anchor="middle" dominant-baseline="middle" fill="${txtCol}" stroke="rgba(0,0,0,0.3)" stroke-width="1.5" style="paint-order:stroke fill">${txt}</text></svg>`;return'data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(svg)));}
 function getNavEndIconSvg(col,txt,az,isCurr=false,hasComm=false){return getNavIconSvg(col,txt,az,true,isCurr,hasComm);}
-function clearRoute(){if(APP.map&&APP.navPoints)APP.navPoints.forEach(p=>{if(p.placemark)APP.map.removeChild(p.placemark);if(p.line)APP.map.removeChild(p.line);if(p.endPlacemark)APP.map.removeChild(p.endPlacemark);});APP.navPoints=[];APP.navCurrentIndex=0;APP.navPreviewIndex=-1;$('hud').classList.remove('active');if(typeof AutoRouteModule==='object')AutoRouteModule.stop();}
+function clearRoute(){if(APP.map&&APP.navPoints)APP.navPoints.forEach(p=>{if(p.placemark)APP.map.removeChild(p.placemark);if(p.line)APP.map.removeChild(p.line);});APP.navPoints=[];APP.navCurrentIndex=0;APP.navPreviewIndex=-1;$('hud').classList.remove('active');if(typeof AutoRouteModule==='object')AutoRouteModule.stop();}
 function renderRoutePoints(){
-if(APP.map&&APP.navPoints)APP.navPoints.forEach(p=>{if(p.placemark)APP.map.removeChild(p.placemark);if(p.line)APP.map.removeChild(p.line);if(p.endPlacemark)APP.map.removeChild(p.endPlacemark);});
+if(APP.map&&APP.navPoints)APP.navPoints.forEach(p=>{if(p.placemark)APP.map.removeChild(p.placemark);if(p.line)APP.map.removeChild(p.line);});
 APP.navPoints=APP.navPoints.map((p,i)=>{
 const isCurrent=(i===APP.navCurrentIndex);
+const isPassed=(i<APP.navCurrentIndex);
 const hasComm=p.comm&&p.comm.trim()!=='';
 const iconUrl=getNavIconSvg(p.hex,p.id,p.az,false,isCurrent,hasComm);
-const placemark=new ymaps3.YMapMarker({coordinates:p.pts[0],zIndex:isCurrent?1000:500},(()=>{const el=document.createElement('div');el.style.cssText='width:40px;height:40px;transform:translate(-50%,-50%);background-size:contain;background-repeat:no-repeat;';el.style.backgroundImage=`url(${iconUrl})`;return el;})());
-let line=null,endPlacemark=null;
+const placemark=new ymaps3.YMapMarker({coordinates:p.pts[0],zIndex:isCurrent?1000:500},(()=>{const el=document.createElement('div');el.style.cssText='width:38px;height:38px;transform:translate(-50%,-50%);background-size:contain;background-repeat:no-repeat;';el.style.backgroundImage=`url(${iconUrl})`;return el;})());
+let line=null;
 if(p.pts&&p.pts.length>=2){
-line=new ymaps3.YMapFeature({geometry:{type:'LineString',coordinates:p.pts},style:{stroke:[{width:4,color:p.hex,opacity:1},{width:6,color:'#000',opacity:1}]}});
-const last=p.pts[p.pts.length-1],prev=p.pts[p.pts.length-2];
-const endIconUrl=getNavEndIconSvg(p.hex,p.id,calcAzimuth([prev[1],prev[0]],[last[1],last[0]]),isCurrent,hasComm);
-endPlacemark=new ymaps3.YMapMarker({coordinates:last},(()=>{const el=document.createElement('div');el.style.cssText=`width:34px;height:34px;transform:translate(-50%,-50%);background-image:url(${endIconUrl});background-size:contain;background-repeat:no-repeat;pointer-events:none;`;return el;})());
+const op=isPassed?0.3:1;
+line=new ymaps3.YMapFeature({geometry:{type:'LineString',coordinates:p.pts},style:{stroke:[{width:4,color:p.hex,opacity:op},{width:6,color:'#000',opacity:op}]}});
 }
-if(APP.map){APP.map.addChild(placemark);if(line)APP.map.addChild(line);if(endPlacemark)APP.map.addChild(endPlacemark);}
-return{...p,placemark,line,endPlacemark};
+if(APP.map){APP.map.addChild(placemark);if(line)APP.map.addChild(line);}
+return{...p,placemark,line};
 });
 updateHud();
 }
