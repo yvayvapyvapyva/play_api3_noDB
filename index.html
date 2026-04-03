@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Навигатор</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#050505">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧭</text></svg>">
+<script src="https://api-maps.yandex.ru/v3/?apikey=c0e28937-4e16-4d15-9b99-09a30cb8fc13&lang=ru_RU"></script>
+<script src="https://unpkg.com/@vkontakte/vk-bridge@latest/dist/browser.min.js"></script>
+<script src="assets/js/routes-list.js"></script>
+<script src="assets/js/menu-module.js"></script>
+<style>
+:root{--bg:#050505;--dark-panel:rgba(20,20,20,0.85);--btn-txt:#fff;--border:rgba(255,255,255,0.25);--panel-blur:blur(22px);--target-lime:#0f0;--safe-top:env(safe-area-inset-top);--safe-bottom:env(safe-area-inset-bottom);--btn-size:56px;--shadow:0 10px 25px rgba(0,0,0,0.22)}
+html,body{margin:0;padding:0;height:100%;width:100%;font-family:-apple-system,sans-serif;overflow:hidden;background:var(--bg);position:fixed;touch-action:none;color:var(--btn-txt)}
+#map{position:absolute;inset:0;z-index:1}
+[class*="-copyrights-pane"],[class*="-map-copyrights-promo"],[class*="-controls-pane"]{display:none!important}
+.loading-overlay{position:fixed;inset:0;background:rgba(8,10,14,0.95);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-weight:600;text-align:center;padding:20px;backdrop-filter:blur(10px)}
+.loading-overlay.hidden{opacity:0;pointer-events:none;transition:opacity .5s}
+#wakeLockVideo{position:fixed;width:1px;height:1px;opacity:.001;pointer-events:none;z-index:-9999}
+.circle-btn{position:absolute;z-index:9005;background:var(--dark-panel);backdrop-filter:var(--panel-blur);-webkit-backdrop-filter:var(--panel-blur);width:var(--btn-size);height:var(--btn-size);border-radius:50%;border:1px solid var(--border);color:var(--btn-txt);cursor:pointer;transition:transform .15s,background .15s;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:var(--shadow)}
+.circle-btn svg{fill:currentColor;width:24px;height:24px}
+.circle-btn span{font-size:13px;font-weight:700;white-space:nowrap}
+.circle-btn:active{transform:scale(.95);background:rgba(30,32,40,0.9)}
+.circle-btn.active{background:rgba(52,199,89,0.42);border-color:rgba(103,255,153,0.45)}
+#menuBtn{top:calc(16px + var(--safe-top));left:50%;transform:translateX(-50%);width:auto;padding:0 16px;border-radius:100px}
+#hud{position:absolute;bottom:calc(24px + var(--safe-bottom));left:16px;right:16px;z-index:9000;background:var(--dark-panel);backdrop-filter:var(--panel-blur);-webkit-backdrop-filter:var(--panel-blur);border-radius:20px;padding:16px;color:var(--btn-txt);border:1px solid var(--border);box-shadow:0 12px 24px rgba(0,0,0,0.22);display:none;flex-direction:column;gap:8px;pointer-events:auto;width:calc(100% - 32px);box-sizing:border-box}
+#hud.active{display:flex}
+.hud-header{display:flex;align-items:center;gap:10px}
+.hud-index{background:rgba(255,255,255,0.2);color:#fff;font-size:10px;font-weight:800;padding:2px 6px;border-radius:6px}
+.hud-cmd{font-size:16px;font-weight:700;flex:1}
+.hud-header .action-icon-btn{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.12);border:1px solid var(--border);cursor:pointer;flex-shrink:0}
+.hud-header .action-icon-btn svg{fill:#f3f4f6;width:20px;height:20px}
+.hud-header .action-icon-btn:active{transform:scale(.95)}
+.hud-header .action-icon-btn:disabled{opacity:.3;cursor:not-allowed}
+.hud-actions{width:100%;display:flex;padding-top:8px;gap:8px;align-items:center;justify-content:space-between;border-top:1px solid rgba(255,255,255,0.1);position:relative}
+.hud-actions-left{display:flex;align-items:center;gap:8px}
+.hud-actions-right{display:flex;align-items:center;gap:8px}
+.hud-actions-center{position:absolute;left:50%;transform:translateX(-50%);display:flex;align-items:center}
+.nav-arrow-btn,.play-btn{width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background .15s,transform .15s}
+.nav-arrow-btn svg,.play-btn svg{fill:#fff;width:24px;height:24px;filter:drop-shadow(0 0 2px rgba(0,0,0,0.8))}
+.nav-arrow-btn:active,.play-btn:active{transform:scale(.95);background:rgba(255,255,255,0.3)}
+.nav-arrow-btn:disabled,.play-btn:disabled{opacity:.3;cursor:not-allowed}
+.play-btn.active{background:rgba(52,199,89,0.42);border-color:rgba(103,255,153,0.45)}
+#toast{position:fixed;top:calc(80px + var(--safe-top));left:50%;transform:translateX(-50%) translateY(-100px);background:var(--dark-panel);color:#fff;padding:14px 24px;border-radius:16px;font-size:14px;z-index:9999;transition:.4s;opacity:0;backdrop-filter:var(--panel-blur);-webkit-backdrop-filter:var(--panel-blur);border:1px solid var(--border);font-weight:700;max-width:80vw;white-space:pre-wrap;text-align:center;line-height:1.4;pointer-events:none}
+#toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+#toast.success{background:rgba(52,199,89,0.95)}
+#toast.error{background:rgba(255,59,48,0.95)}
+#toast.info{background:rgba(0,0,0,0.82)}
+#jsonModal{position:fixed;top:calc(16px + var(--safe-top));left:50%;transform:translateX(-50%) translateY(-100px);z-index:10000;display:flex;opacity:0;pointer-events:none;transition:transform .3s,opacity .3s;width:95%;max-width:95%}
+#jsonModal.hidden{transform:translateX(-50%) translateY(-100px);opacity:0;pointer-events:none}
+#jsonModal:not(.hidden){transform:translateX(-50%) translateY(0);opacity:1;pointer-events:auto}
+.modal-sheet{width:100%;max-height:calc(100vh - 100px - var(--safe-top) - var(--safe-bottom));background:var(--dark-panel);backdrop-filter:var(--panel-blur);-webkit-backdrop-filter:var(--panel-blur);border:1px solid var(--border);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:12px;box-shadow:0 10px 40px rgba(0,0,0,0.5);overflow:hidden}
+.modal-title{font-size:16px;font-weight:800;text-align:center;color:#fff}
+.modal-input{width:100%;padding:14px;border-radius:12px;border:1px solid var(--border);background:rgba(40,42,50,0.5);color:#fff;font-size:14px;font-family:inherit;box-sizing:border-box;outline:none;margin-top:16px}
+.modal-buttons{display:flex;gap:8px;margin-top:16px}
+.modal-btn{flex:1;padding:14px;border-radius:12px;border:none;font-size:15px;font-weight:700;cursor:pointer;transition:transform .15s}
+.modal-btn:active{transform:scale(.98)}
+.modal-btn-green{background:rgba(52,199,89,0.42);border:1px solid rgba(103,255,153,0.45);color:#fff}
+.modal-btn-muted{background:rgba(40,40,45,0.3);border:1px solid var(--border);color:#fff}
+.routes-list{margin-top:16px;flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding:4px}
+.route-item{display:flex;flex-direction:column;align-items:flex-start;padding:12px;border-radius:12px;background:rgba(40,42,50,0.5);border:1px solid var(--border);cursor:pointer;transition:transform .15s,background .15s;text-align:left;width:100%}
+.route-item:active{transform:scale(.98);background:rgba(52,199,89,0.3)}
+.route-name{font-size:15px;font-weight:700;color:#fff;line-height:1.3}
+.route-id{font-size:11px;color:#888;margin-top:4px;font-family:monospace}
+</style>
+</head>
+<body>
+<div id="loading" class="loading-overlay"><div id="loadingText">ЗАГРУЗКА...</div><div id="errorMsg" style="color:#F33;display:none;margin-top:10px"></div></div>
+<video id="wakeLockVideo" playsinline muted loop></video>
+<div id="map"></div>
+<button id="menuBtn" class="circle-btn" aria-label="Меню">
+    <svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+    <span>Меню</span>
+</button>
+<div id="hud">
+<div class="hud-header"><span class="hud-index" id="hudIndex">1</span><div class="hud-cmd" id="hudCmd">Маршрут не выбран</div><button id="speakBtn" class="action-icon-btn" aria-label="Воспроизвести"><svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg></button></div>
+<div class="hud-actions">
+<div class="hud-actions-left"><button id="prevBtn" class="nav-arrow-btn" title="Предыдущая точка"><svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg></button></div>
+<div class="hud-actions-center"><button id="playBtn" class="play-btn" aria-label="Старт"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button></div>
+<div class="hud-actions-right"><button id="nextBtn" class="nav-arrow-btn" title="Следующая точка"><svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg></button></div>
+</div>
+</div>
+<div id="toast"></div>
+<script>
+const COLORS={Gold:{hex:'#FFD700'},Blue:{hex:'#007AFF'},Red:{hex:'#F33'},Fuchsia:{hex:'#AF52DE'},Orange:{hex:'#F90'},Purple:{hex:'#5856D6'},Cyan:{hex:'#5CF'},Brown:{hex:'#A2845E'},Lime:{hex:'#3C7'}};
+const APP={map:null,navPoints:[],navCurrentIndex:0,navPreviewIndex:-1,navAudio:new Audio()};
+window.APP=APP;
+const $=id=>document.getElementById(id);
+const toRad=deg=>deg*Math.PI/180;
+const toDeg=rad=>rad*180/Math.PI;
+function calcAzimuth(p1,p2){if(!p1||!p2)return 0;const[la1,lo1]=p1.map(toRad);const[la2,lo2]=p2.map(toRad);const y=Math.sin(lo2-lo1)*Math.cos(la2);const x=Math.cos(la1)*Math.sin(la2)-Math.sin(la1)*Math.cos(la2)*Math.cos(lo2-lo1);return Math.round((toDeg(Math.atan2(y,x))+360)%360);}
+if(typeof vkBridge!=='undefined')vkBridge.send('VKWebAppInit');
+let toastTimer=null;
+function showToast(text,type='info',duration=2000){const el=$('toast');el.textContent=text;el.className=`toast ${type} show`;if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),duration);}
+const ALL_AUDIO_COMMANDS=["На перекрестке повернем налево","На перекрестке едем прямо","На перекрестке повернем направо","На перекрестке выполним разворот","На круговом движении первый съезд","На круговом движении второй съезд","На круговом движении третий съезд","На круговом движении четвертый съезд","На круговом движении выполним разворот","На регулируемом перекрестке повернем налево","На регулируемом перекрестке едем прямо","На регулируемом перекрестке повернем направо","На регулируемом перекрестке выполним разворот","На нерегулируемом перекрестке повернем налево","На нерегулируемом перекрестке едем прямо","На нерегулируемом перекрестке повернем направо","На нерегулируемом перекрестке выполним разворот","Выполним разворот вне перекрестка","Выполним разворот в ближайшем разрешенном месте","Найдите место для разворота и развернитесь","Выполняем разгон до максимальной скорости","Набираем максимальную скорость на данном участке дороги","Разгоняемся до максимальной разрешенной скорости","По моей команде выполним остановку и начало движения на подъеме","Выполняем остановку и начало движения на подъеме","Поворачиваем направо","Поворачиваем налево","Далее повернем направо","Далее повернем налево","На светофоре повернем направо","На светофоре повернем налево","Поворачиваем направо к ленте","Поворачиваем направо на заправку","Едем в прямом направлении","Выполняем параллельную парковку и гараж","Выполняем разворот в ограниченном пространстве","Выполним разворот в ограниченном пространстве с использованием передачи заднего хода","Выполняем остановку параллельно краю проезжей части","Выполняем остановку в ближайшем разрешенном месте","Начинаем движение","Как будете готовы начинаем движение","Выполним разворот в ближайшем разрешенном месте","Найдите место для остановки и остановитесь","Остановитесь в ближайшем разрешенном месте"];
+function getAudioPath(t){if(!t)return null;const n=t.normalize('NFC').toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-`~()]/g,"").trim().replace(/\s+/g,'_');return`audio/${encodeURIComponent(n)}.mp3`;}
+async function playCommand(text){const path=getAudioPath(text);if(!path)return;APP.navAudio.pause();if('caches' in window){try{const cache=await caches.open('route-audio-v1'),cached=await cache.match(path);if(cached){APP.navAudio.src=URL.createObjectURL(await cached.blob());APP.navAudio.play().catch(e=>{});return;}}catch(e){}}APP.navAudio.src=path;APP.navAudio.play().catch(e=>{});}
+async function preloadAudio(){if(!('caches' in window))return;const cache=await caches.open('route-audio-v1');const allPaths=ALL_AUDIO_COMMANDS.map(getAudioPath).filter(p=>p),uniquePaths=[...new Set(allPaths)];for(const path of uniquePaths){try{const res=await fetch(path);if(res.ok)await cache.put(path,res);}catch(e){}}}
+function loadRouteFromJSON(data){processRouteData(data);}
+function processRouteData(data){
+clearRoute();startWakeLock();
+if(!data||!Array.isArray(data))throw new Error('Неверный формат');
+APP.navPoints=data.map((d,i)=>{const pts=d.pts||[];if(!pts||pts.length===0)return null;const ptsConverted=pts.map(p=>[p[1],p[0]]);return{id:d.id||(i+1),color:d.color,hex:COLORS[d.color]?.hex||'#007AFF',cmd:(d.cmd||d.comm||`Т${i+1}`).trim(),pts:ptsConverted,az:pts.length>=2?calcAzimuth(pts[0],pts[1]):0};}).filter(p=>p);
+if(APP.navPoints.length===0)throw new Error('Маршрут пуст');
+APP.navCurrentIndex=0;APP.navPreviewIndex=-1;
+$('hud').classList.add('active');$('loading').classList.add('hidden');
+renderRoutePoints();updateHud();
+if(APP.navPoints.length>0&&APP.map)setTimeout(()=>{let minLat=Infinity,maxLat=-Infinity,minLng=Infinity,maxLng=-Infinity;APP.navPoints.forEach(p=>{if(p.pts?.length>0){const[lng,lat]=p.pts[0];minLat=Math.min(minLat,lat);maxLat=Math.max(maxLat,lat);minLng=Math.min(minLng,lng);maxLng=Math.max(maxLng,lng);}});if(minLat!==Infinity)APP.map.update({location:{center:[(minLng+maxLng)/2,(minLat+maxLat)/2],zoom:18}});if(typeof AutoRouteModule==='object')AutoRouteModule.start(25);},500);
+preloadAudio();
+}
+function getNavIconSvg(col,txt,az,isEnd,isCurr=false){const s=isEnd?34:40,c=s/2,strk=isCurr?'#0F0':'#000';const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}"><circle cx="${c}" cy="${c}" r="${isEnd?7:9}" fill="${col}" stroke="${strk}" stroke-width="1.5"/><text x="${c}" y="${c+0.5}" font-size="${isEnd?8:9}" font-family="Arial" font-weight="900" text-anchor="middle" dominant-baseline="middle" fill="#000" stroke="white" stroke-width="2" style="paint-order:stroke fill">${txt}</text></svg>`;return'data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(svg)));}
+function getNavEndIconSvg(col,txt,az,isCurr=false){return getNavIconSvg(col,txt,az,true,isCurr);}
+function clearRoute(){if(APP.map&&APP.navPoints)APP.navPoints.forEach(p=>{if(p.placemark)APP.map.removeChild(p.placemark);if(p.line)APP.map.removeChild(p.line);if(p.endPlacemark)APP.map.removeChild(p.endPlacemark);});APP.navPoints=[];APP.navCurrentIndex=0;APP.navPreviewIndex=-1;$('hud').classList.remove('active');if(typeof AutoRouteModule==='object')AutoRouteModule.stop();}
+function renderRoutePoints(){
+if(APP.map&&APP.navPoints)APP.navPoints.forEach(p=>{if(p.placemark)APP.map.removeChild(p.placemark);if(p.line)APP.map.removeChild(p.line);if(p.endPlacemark)APP.map.removeChild(p.endPlacemark);});
+APP.navPoints=APP.navPoints.map((p,i)=>{
+const isCurrent=(i===APP.navCurrentIndex);
+const iconUrl=getNavIconSvg(p.hex,p.id,isCurrent);
+const placemark=new ymaps3.YMapMarker({coordinates:p.pts[0],zIndex:isCurrent?1000:500},(()=>{const el=document.createElement('div');el.style.cssText='width:40px;height:40px;transform:translate(-50%,-50%);background-size:contain;background-repeat:no-repeat;';el.style.backgroundImage=`url(${iconUrl})`;return el;})());
+let line=null,endPlacemark=null;
+if(p.pts&&p.pts.length>=2){
+line=new ymaps3.YMapFeature({geometry:{type:'LineString',coordinates:p.pts},style:{stroke:[{width:4,color:p.hex,opacity:1},{width:6,color:'#000',opacity:1}]}});
+const last=p.pts[p.pts.length-1],prev=p.pts[p.pts.length-2];
+const endIconUrl=getNavEndIconSvg(p.hex,p.id,calcAzimuth([prev[1],prev[0]],[last[1],last[0]]),isCurrent);
+endPlacemark=new ymaps3.YMapMarker({coordinates:last},(()=>{const el=document.createElement('div');el.style.cssText=`width:34px;height:34px;transform:translate(-50%,-50%);background-image:url(${endIconUrl});background-size:contain;background-repeat:no-repeat;pointer-events:none;`;return el;})());
+}
+if(APP.map){APP.map.addChild(placemark);if(line)APP.map.addChild(line);if(endPlacemark)APP.map.addChild(endPlacemark);}
+return{...p,placemark,line,endPlacemark};
+});
+updateHud();
+}
+function updateHud(){const idx=APP.navCurrentIndex;const t=APP.navPoints[idx];if(!t)return;$('hudIndex').textContent=idx+1;$('hudCmd').textContent=t.cmd;$('speakBtn').onclick=()=>playCommand(t.cmd);const prevBtn=$('prevBtn'),nextBtn=$('nextBtn');prevBtn.disabled=(idx<=0);nextBtn.disabled=(idx>=APP.navPoints.length-1);prevBtn.onclick=()=>goToPoint(idx-1);nextBtn.onclick=()=>goToPoint(idx+1);}
+function goToPoint(i){if(i<0||i>=APP.navPoints.length)return;const wasRunning=typeof AutoRouteModule==='object'&&AutoRouteModule.isRunning;if(wasRunning){AutoRouteModule._stopRequested=true;AutoRouteModule.isRunning=false;window.isAutoRouteRunning=false;if(AutoRouteModule._segmentTimeoutId){clearTimeout(AutoRouteModule._segmentTimeoutId);AutoRouteModule._segmentTimeoutId=null;}if(AutoRouteModule._animationFrameId){cancelAnimationFrame(AutoRouteModule._animationFrameId);AutoRouteModule._animationFrameId=null;}AutoRouteModule.isTransition=false;AutoRouteModule.isFirstStart=false;AutoRouteModule.updateButtonState();hideAutoIndicator();}APP.navCurrentIndex=i;renderRoutePoints();updateHud();const p=APP.navPoints[i];if(p?.pts?.length>0){const nextAz=p.az||0;APP.map.update({location:{center:p.pts[0],zoom:18},camera:{azimuth:-nextAz*(Math.PI/180),tilt:50*(Math.PI/180)}});updateAutoIndicator(p.pts[0]);}if(wasRunning)setTimeout(()=>{AutoRouteModule._stopRequested=false;AutoRouteModule.currentIndex=i;AutoRouteModule.start(25);},100);}
+let wakeLockInterval=null,wakeCanvas=null,wakeCanvasStream=null;
+function initWakeVideo(){if(!wakeCanvas){wakeCanvas=document.createElement('canvas');wakeCanvas.width=1;wakeCanvas.height=1;const ctx=wakeCanvas.getContext('2d');ctx.fillStyle='#000';ctx.fillRect(0,0,1,1);if(wakeCanvas.captureStream)wakeCanvasStream=wakeCanvas.captureStream(30);else if(wakeCanvas.mozCaptureStream)wakeCanvasStream=wakeCanvas.mozCaptureStream(30);}}
+function startWakeLock(){initWakeVideo();const wakeVideo=document.getElementById('wakeLockVideo');if(wakeVideo&&wakeCanvasStream){wakeVideo.srcObject=wakeCanvasStream;wakeVideo.play().catch(e=>{});}if(wakeLockInterval)clearInterval(wakeLockInterval);wakeLockInterval=setInterval(()=>{const wakeVideo=document.getElementById('wakeLockVideo');if(wakeVideo&&wakeVideo.paused)wakeVideo.play().catch(e=>{});if(wakeCanvas){const ctx=wakeCanvas.getContext('2d');ctx.fillStyle='#'+Math.floor(Math.random()*16777215).toString(16);ctx.fillRect(0,0,1,1);}},3000);}
+const EARTH_RADIUS=6371000;
+function _calcDistance(p1,p2){const[lon1,lat1]=p1.map(d=>d*Math.PI/180),[lon2,lat2]=p2.map(d=>d*Math.PI/180),dLat=lat2-lat1,dLon=lon2-lon1,a=Math.sin(dLat/2)**2+Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLon/2)**2;return EARTH_RADIUS*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
+function createLineString(coords){return{geometry:{coordinates:coords}};}
+function getPointAlongLine(ls,dist){const c=ls.geometry.coordinates;let traveled=0;for(let i=0;i<c.length-1;i++){const p1=c[i],p2=c[i+1],segDist=_calcDistance(p1,p2);if(traveled+segDist>=dist){const r=(dist-traveled)/segDist;return{geometry:{coordinates:[p1[0]+(p2[0]-p1[0])*r,p1[1]+(p2[1]-p1[1])*r]}};}traveled+=segDist;}return{geometry:{coordinates:c[c.length-1]}};}
+let autoIndicatorMarker=null,autoIndicatorVisible=false,autoIndicatorEl=null;
+function updateAutoIndicator(coords){if(!APP.map||!coords)return;if(!autoIndicatorMarker){const markerElement=document.createElement('div');markerElement.style.cssText='position:absolute;transform:translate(-50%,-50%);';const markerElementImg=document.createElement('img');markerElementImg.src='assets/images/marker-red.png';markerElementImg.style.cssText='width:40px;height:40px;display:block;';markerElement.appendChild(markerElementImg);autoIndicatorEl=markerElementImg;autoIndicatorMarker=new ymaps3.YMapMarker({coordinates:coords,zIndex:10000},markerElement);APP.map.addChild(autoIndicatorMarker);autoIndicatorVisible=true;return;}if(!autoIndicatorVisible){APP.map.addChild(autoIndicatorMarker);autoIndicatorVisible=true;}autoIndicatorMarker.update({coordinates:coords});}
+function hideAutoIndicator(){if(autoIndicatorVisible&&APP.map){APP.map.removeChild(autoIndicatorMarker);autoIndicatorVisible=false;}}
+function angleFromCoordinate(p1,p2){const toRad=d=>d*Math.PI/180;const toDeg=r=>r*180/Math.PI;const dLon=toRad(p2[0]-p1[0]);const y=Math.sin(dLon)*Math.cos(toRad(p2[1]));const x=Math.cos(toRad(p1[1]))*Math.sin(toRad(p2[1]))-Math.sin(toRad(p1[1]))*Math.cos(toRad(p2[1]))*Math.cos(dLon);return(Math.atan2(y,x)*180/Math.PI+360)%360;}
+const AutoRouteModule={currentIndex:0,speed:25,isRunning:false,btn:null,isTransition:false,isFirstStart:false,_animationFrameId:null,_segmentTimeoutId:null,_stopRequested:false,
+toggle(){this.isRunning?this.stop():this.start(25);},
+start(speed=25){const appRef=APP;if(!appRef?.navPoints||appRef.navPoints.length===0){showToast('Маршрут не загружен','error');return;}this._stopRequested=false;this.isRunning=true;window.isAutoRouteRunning=true;this.speed=speed;this.currentIndex=appRef.navPreviewIndex>=0?appRef.navPreviewIndex:appRef.navCurrentIndex;this.isTransition=false;this.isFirstStart=true;this.updateButtonState();const currentPoint=appRef.navPoints[this.currentIndex];if(currentPoint?.pts?.length>0){updateAutoIndicator(currentPoint.pts[0]);const segAngle=angleFromCoordinate(currentPoint.pts[0],currentPoint.pts[1]);const targetAzimuth=-segAngle;const currentMapAz=(APP.map.azimuth||0)*(180/Math.PI);let azDiff=targetAzimuth-currentMapAz;if(azDiff>180)azDiff-=360;if(azDiff<-180)azDiff+=360;APP.map.update({location:{center:currentPoint.pts[0],zoom:18},camera:{azimuth:(currentMapAz+azDiff)*(Math.PI/180),tilt:50*(Math.PI/180)}});}this.playSegment();},
+stop(){this._stopRequested=true;this.isRunning=false;window.isAutoRouteRunning=false;if(this._segmentTimeoutId){clearTimeout(this._segmentTimeoutId);this._segmentTimeoutId=null;}if(this._animationFrameId){cancelAnimationFrame(this._animationFrameId);this._animationFrameId=null;}this.updateButtonState();this.isTransition=false;this.isFirstStart=false;hideAutoIndicator();},
+updateButtonState(){if(this.btn){if(this.isRunning){this.btn.classList.add('active');this.btn.innerHTML='<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';}else{this.btn.classList.remove('active');this.btn.innerHTML='<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';}}},
+animateAlongPath(pts,speed=25,onComplete=null,minDuration=3500,applySlowStart=true){if(this._stopRequested){if(onComplete)onComplete();return;}if(!pts||pts.length<2){if(onComplete)onComplete();return;}const validPts=pts.filter(p=>p&&p.length===2);if(validPts.length<2){if(onComplete)onComplete();return;}try{const segLengths=[];let totalLength=0;for(let i=0;i<validPts.length-1;i++){const len=_calcDistance(validPts[i],validPts[i+1]);segLengths.push(len);totalLength+=len;}if(totalLength===0){if(onComplete)onComplete();return;}const slowSpeed=6.94,fastSpeed=speed,slowDuration=applySlowStart?3000:0,slowDistance=applySlowStart?slowSpeed*3:0;let totalDuration;if(applySlowStart&&totalLength<=slowDistance)totalDuration=(totalLength/slowSpeed)*1000;else if(applySlowStart){const fastDistance=totalLength-slowDistance;totalDuration=slowDuration+(fastDistance/fastSpeed)*1000;}else totalDuration=(totalLength/fastSpeed)*1000;if(minDuration>0&&totalDuration<minDuration)totalDuration=minDuration;const startTime=performance.now();const animateStep=(currentTime)=>{if(this._stopRequested){cancelAnimationFrame(this._animationFrameId);this._animationFrameId=null;if(onComplete)onComplete();return;}const elapsed=currentTime-startTime;let currentDistance=elapsed<=slowDuration?slowSpeed*(elapsed/1000):slowDistance+fastSpeed*((elapsed-slowDuration)/1000);currentDistance=Math.min(currentDistance,totalLength);const currentPoint=getPointAlongLine(createLineString(validPts),currentDistance);if(currentPoint?.geometry?.coordinates?.length===2)updateAutoIndicator(currentPoint.geometry.coordinates);if(currentDistance<totalLength){this._animationFrameId=requestAnimationFrame(animateStep);}};this._animationFrameId=requestAnimationFrame(animateStep);let currentSegIndex=0,segDistanceAtStart=0;const animateSegment=()=>{if(this._stopRequested||currentSegIndex>=validPts.length-1){if(this._segmentTimeoutId){clearTimeout(this._segmentTimeoutId);this._segmentTimeoutId=null;}if(this._animationFrameId){cancelAnimationFrame(this._animationFrameId);this._animationFrameId=null;}if(onComplete)onComplete();return;}const p1=validPts[currentSegIndex],p2=validPts[currentSegIndex+1],segLength=segLengths[currentSegIndex],distAtSegEnd=segDistanceAtStart+segLength;let timeAtSegStart=segDistanceAtStart<=slowDistance?(segDistanceAtStart/slowSpeed)*1000:slowDuration+((segDistanceAtStart-slowDistance)/fastSpeed)*1000,timeAtSegEnd=distAtSegEnd<=slowDistance?(distAtSegEnd/slowSpeed)*1000:slowDuration+((distAtSegEnd-slowDistance)/fastSpeed)*1000,segDuration=timeAtSegEnd-timeAtSegStart;const segAngle=angleFromCoordinate(p1,p2),targetAzimuth=-segAngle,currentMapAzimuth=(APP.map.azimuth||0)*(180/Math.PI);let azimuthDiff=targetAzimuth-currentMapAzimuth;if(azimuthDiff>180)azimuthDiff-=360;if(azimuthDiff<-180)azimuthDiff+=360;APP.map.update({location:{center:p2,duration:segDuration,easing:'linear'},camera:{azimuth:(currentMapAzimuth+azimuthDiff)*(Math.PI/180),duration:segDuration}});segDistanceAtStart=distAtSegEnd;currentSegIndex++;this._segmentTimeoutId=setTimeout(animateSegment,segDuration);};animateSegment();}catch(e){if(onComplete)onComplete();}},
+playSegment(){if(this._stopRequested)return;const appRef=APP;if(!this.isRunning||this.currentIndex>=appRef.navPoints.length){this.stop();showToast('Маршрут завершён!','success');return;}const p=appRef.navPoints[this.currentIndex];if(!p||!p.pts||p.pts.length<2){this.currentIndex++;this.playSegment();return;}if(this.currentIndex>0&&!this.isTransition&&!this.isFirstStart){const prevPoint=appRef.navPoints[this.currentIndex-1].pts[appRef.navPoints[this.currentIndex-1].pts.length-1],currentStart=p.pts[0],gap=_calcDistance(prevPoint,currentStart);if(gap>5){this.isTransition=true;const transitionPts=[],segments=Math.ceil(gap/10);for(let i=0;i<=segments;i++){const t=i/segments;transitionPts.push([prevPoint[0]+(currentStart[0]-prevPoint[0])*t,prevPoint[1]+(currentStart[1]-prevPoint[1])*t]);}this.animateAlongPath(transitionPts,this.speed,()=>{if(this._stopRequested)return;this.isTransition=false;appRef.navCurrentIndex=this.currentIndex;updateHud();renderRoutePoints();if(p.cmd)playCommand(p.cmd);this.animateAlongPath(p.pts,this.speed,()=>{if(this._stopRequested)return;this.currentIndex++;this.playSegment();},3500,true);},0,false);return;}}this.isFirstStart=false;appRef.navCurrentIndex=this.currentIndex;updateHud();renderRoutePoints();if(p.cmd)playCommand(p.cmd);this.animateAlongPath(p.pts,this.speed,()=>{if(this._stopRequested)return;this.currentIndex++;this.playSegment();},3500,true);}};
+async function initMap(){
+await ymaps3.ready;
+const{YMap,YMapDefaultSchemeLayer,YMapDefaultFeaturesLayer}=ymaps3;
+APP.map=new YMap(document.getElementById('map'),{location:{center:[43.9332,56.3399],zoom:17},behaviors:['drag','scrollZoom','dblClick']},[new YMapDefaultSchemeLayer({}),new YMapDefaultFeaturesLayer({})]);
+$('playBtn').addEventListener('click',()=>{if(APP.navPoints.length===0){showToast('Маршрут не загружен','error');return;}if(typeof AutoRouteModule==='object')AutoRouteModule.toggle();});
+MenuModule.init(loadRouteFromJSON);
+if(typeof AutoRouteModule==='object')AutoRouteModule.btn=$('playBtn');
+$('loading').classList.add('hidden');
+}
+initMap();
+</script>
+</body>
+</html>
