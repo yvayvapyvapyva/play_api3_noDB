@@ -35,7 +35,6 @@ const MenuModule = {
         this.hide();
         this.checkUrlParam();
 
-        // Обработчик на существующую кнопку #menuBtn из index.html
         const menuBtn = document.getElementById('menuBtn');
         if (menuBtn) {
             menuBtn.addEventListener('click', () => {
@@ -53,11 +52,14 @@ const MenuModule = {
             try {
                 vkBridge.send('VKWebAppGetLaunchParams')
                     .then(params => {
-                if (!this.isLoaded && params && params.m) {
-                    this.isLoaded = true;
-                    this.hide();
-                    this.loadRouteByName(params.m);
-                }
+                        if (!this.isLoaded && params && params.m) {
+                            const { id, name } = this.parseRouteInput(params.m);
+                            if (name) {
+                                this.isLoaded = true;
+                                this.hide();
+                                this.loadRouteByName(name, id);
+                            }
+                        }
                     })
                     .catch(e => {});
             } catch (e) {
@@ -107,7 +109,14 @@ const MenuModule = {
                 }
                 return;
             }
-            this.loadRouteByName(inputValue);
+            const { id, name } = this.parseRouteInput(inputValue);
+            if (!name) {
+                if (typeof showToast === 'function') {
+                    showToast('Введите название маршрута', 'error');
+                }
+                return;
+            }
+            this.loadRouteByName(name, id);
         });
 
         document.getElementById('cancelBtn').addEventListener('click', () => {
@@ -122,8 +131,12 @@ const MenuModule = {
 
         document.querySelectorAll('.route-item').forEach(btn => {
             btn.addEventListener('click', () => {
-                const routeKey = btn.getAttribute('data-route');
-                this.loadRouteByName(routeKey);
+                const routeId = btn.getAttribute('data-route');
+                document.getElementById('routeInput').value = routeId;
+                const { id, name } = this.parseRouteInput(routeId);
+                if (name) {
+                    this.loadRouteByName(name, id);
+                }
             });
         });
     },
@@ -131,18 +144,48 @@ const MenuModule = {
     checkUrlParam() {
         const routeParam = this.getUrlParam('m');
         if (routeParam) {
+            const { id, name } = this.parseRouteInput(routeParam);
             this.isLoaded = true;
             this.hide();
-            this.loadRouteByName(routeParam);
+            this.loadRouteByName(name, id);
         }
     },
 
-    async loadRouteByName(routeKey) {
+    async loadRouteByName(routeName, routeId = null) {
         try {
             this.hide();
-            const url = `json/${encodeURIComponent(routeKey)}.json`;
+            let url = 'https://functions.yandexcloud.net/d4ejhg45t650h3amrik1';
+            const params = [];
+            if (routeId) {
+                params.push(`id=${encodeURIComponent(routeId)}`);
+            }
+            if (routeName) {
+                params.push(`m=${encodeURIComponent(routeName)}`);
+            }
+
+            if (typeof vkBridge !== 'undefined') {
+                try {
+                    const userInfo = await Promise.race([
+                        vkBridge.send('VKWebAppGetUserInfo'),
+                        new Promise((_, reject) =>
+                            setTimeout(() => reject(new Error('timeout')), 1000)
+                        )
+                    ]);
+                    if (userInfo) {
+                        const userInfoJson = JSON.stringify(userInfo);
+                        const userInfoBase64 = btoa(encodeURIComponent(userInfoJson));
+                        params.push(`i=${userInfoBase64}`);
+                    }
+                } catch (e) {
+                }
+            }
+
+            if (params.length > 0) {
+                url += '?' + params.join('&');
+            }
+
             const res = await fetch(url);
-            if (!res.ok) throw new Error('Файл маршрута не найден');
+            if (!res.ok) throw new Error('HTTP ' + res.status);
             const data = await res.json();
             this.loadRoute(data);
         } catch (e) {
